@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>v86 + FreeDOS on GitHub Pages (WebSocket ネットワーク有効化)</title>
+
+  <!-- 1. v86 ランタイム（CDN経由） -->
+  <script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"></script>
+
+  <!-- 2. 基本スタイル -->
+  <style>
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; }
+    #screen_container { position:relative; width:100%; height:100%; background:#000; }
+    canvas { position:absolute; top:0; left:0; }
+    #mount_fs_btn {
+      position:absolute; top:10px; left:10px; z-index:10;
+      padding:6px 12px; font-size:14px; cursor:pointer;
+    }
+    #serial {
+      position:absolute; bottom:0; left:0; width:100%; height:20%;
+      margin:0; padding:8px; background:#111; color:#0f0;
+      overflow:auto; font-family:monospace; font-size:12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 3. エミュレータ画面 -->
+  <div id="screen_container">
+    <canvas id="screen"></canvas>
+  </div>
+
+  <!-- 4. ホストファイル共有用ボタン -->
+  <button id="mount_fs_btn">ホストフォルダをマウント</button>
+
+  <!-- 5. シリアル出力用コンテナ -->
+  <pre id="serial"></pre>
+
+  <!-- 6. エミュレータ初期化スクリプト -->
+  <script>
+    // (A) V86Starter のオプション定義
+    const options = {
+      wasm_path:        "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
+      screen_container: document.getElementById("screen_container"),
+      screen_canvas:    document.getElementById("screen"),
+      bios:             { url: "bios/seabios.bin" },
+      vga_bios:         { url: "bios/vgabios.bin" },
+      cdrom:            { url: "images/freedos722.iso" },
+      autostart:        true,
+      memory_size:      64 * 1024 * 1024,
+      vga_memory_size:  4  * 1024 * 1024,
+      serial_container: document.getElementById("serial"),
+
+      // (B) ネットワークエミュレーションを有効化
+      //    パブリック WebSocket プロキシ relay.widgetry.org を利用
+      network: {
+        type:   "ws",
+        server: "wss://relay.widgetry.org/"
+      },
+
+      // (C) ファイルシステム共有の初期設定
+      filesystem: {}
+    };
+
+    // V86 インスタンス生成
+    const emulator = new V86Starter(options);
+
+    // (D) ホストフォルダをマウントする関数
+    async function mountHostFS() {
+      const dirHandle = await window.showDirectoryPicker();
+      await emulator.mount_fs({
+        basefs: {
+          name:    "hostfs",
+          handle:  dirHandle,
+          overlay: true
+        }
+      });
+      alert("ホストフォルダをマウントしました。\nゲスト内の C:\\\\HOSTFS にマウントされます");
+    }
+
+    document.getElementById("mount_fs_btn")
+      .addEventListener("click", mountHostFS);
+  </script>
+</body>
+</html>
