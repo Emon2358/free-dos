@@ -5,34 +5,38 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>v86 + FreeDOS on GitHub Pages</title>
 
-  <!-- v86 ランタイム読み込み（CDN経由） -->
+  <!-- v86 ランタイム（CDN 経由） -->
   <script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"></script>
+
   <style>
     html, body { margin:0; padding:0; height:100%; overflow:hidden; }
     #screen_container { position:relative; width:100%; height:100%; background:#000; }
-    canvas { position:absolute; top:0; left:0; }
-    #mount_fs_btn { position:absolute; top:10px; left:10px; z-index:10; }
+    #mount_fs_btn {
+      position:absolute; top:10px; left:10px; z-index:10;
+      padding:6px 12px; font-size:14px;
+    }
     #serial {
       position:absolute; bottom:0; left:0; width:100%; height:20%;
       margin:0; padding:8px; background:#111; color:#0f0;
-      font-family:monospace; font-size:12px; overflow:auto;
+      overflow:auto; font-family:monospace; font-size:12px;
     }
   </style>
 </head>
 <body>
-  <div id="screen_container">
-    <canvas id="screen"></canvas>
-  </div>
+  <!-- エミュレータ描画先コンテナ -->
+  <div id="screen_container"></div>
 
+  <!-- ホストファイル共有用ボタン -->
   <button id="mount_fs_btn">ホストフォルダをマウント</button>
+
+  <!-- シリアル出力 -->
   <pre id="serial"></pre>
 
   <script>
-    // 1) オプション定義
+    // (A) 初期オプション
     const options = {
       wasm_path:        "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
       screen_container: document.getElementById("screen_container"),
-      screen_canvas:    document.getElementById("screen"),
       bios:             { url: "bios/seabios.bin" },
       vga_bios:         { url: "bios/vgabios.bin" },
       cdrom:            { url: "images/freedos722.iso" },
@@ -41,36 +45,39 @@
       vga_memory_size:  4  * 1024 * 1024,
       serial_container: document.getElementById("serial"),
 
-      // 2) ネットワーク設定
-      //    → 公式サンプルでは key: network、type: "ws" が正
+      // (B) ネットワーク有効化
       network: {
         type:   "ws",
         server: "wss://relay.widgetry.org/"
       },
 
-      // 3) ファイルシステム共有は後続の mount_fs() で設定
+      // (C) ファイルシステム共有は後述の mount_fs() で設定
       filesystem: {}
     };
 
-    // 4) エミュレータ生成
-    //    公式の CDN ビルドではグローバルに "V86" が定義されています :contentReference[oaicite:0]{index=0}
+    // (D) エミュレータ起動
     const emulator = new V86(options);
 
-    // 5) ホストフォルダをマウントする関数
+    // (E) ホストフォルダをマウント
     async function mountHostFS() {
-      const dirHandle = await window.showDirectoryPicker();
-      await emulator.mount_fs({
-        basefs: {
-          name:    "hostfs",
-          handle:  dirHandle,
-          overlay: true
-        }
-      });
-      alert("ホストフォルダをマウントしました。\nゲスト内の C:\\\\HOSTFS にマウントされます");
+      try {
+        const dirHandle = await window.showDirectoryPicker();
+        await emulator.mount_fs({
+          basefs: {
+            name:    "hostfs",
+            handle:  dirHandle,
+            overlay: true
+          }
+        });
+        alert("ホストフォルダをマウントしました。\nゲストの C:\\\\HOSTFS に見えます");
+      }
+      catch(e) {
+        // キャンセル時は何もしない
+        console.log("マウントがキャンセルされました");
+      }
     }
-
     document.getElementById("mount_fs_btn")
-      .addEventListener("click", mountHostFS);
+            .addEventListener("click", mountHostFS);
   </script>
 </body>
 </html>
