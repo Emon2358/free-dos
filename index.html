@@ -13,7 +13,7 @@
     #screen_container { position:relative; width:100%; height:100%; background:#000; }
     #mount_fs_btn {
       position:absolute; top:10px; left:10px; z-index:10;
-      padding:6px 12px; font-size:14px;
+      padding:6px 12px; font-size:14px; cursor:pointer;
     }
     #serial {
       position:absolute; bottom:0; left:0; width:100%; height:20%;
@@ -23,61 +23,61 @@
   </style>
 </head>
 <body>
-  <!-- ① v86 が期待する “文字出力用 div” と “canvas” を必ずここに並べる -->
+  <!-- 必須：テキスト出力用<div> と <canvas> を並べる -->
   <div id="screen_container">
-    <!-- シリアル等テキスト出力用 -->
     <div style="white-space: pre; font: 14px monospace; line-height: 14px"></div>
-    <!-- v86 の描画用 canvas -->
     <canvas></canvas>
   </div>
 
-  <!-- ホストファイル共有用ボタン -->
+  <!-- ホストファイル共有用 -->
   <button id="mount_fs_btn">ホストフォルダをマウント</button>
-
-  <!-- シリアル出力 -->
   <pre id="serial"></pre>
 
   <script>
-    // (A) 初期オプション
     const options = {
+      // ① wasm の読み込み先
       wasm_path:        "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
       screen_container: document.getElementById("screen_container"),
       bios:             { url: "bios/seabios.bin" },
       vga_bios:         { url: "bios/vgabios.bin" },
-      cdrom:            { url: "images/freedos722.iso" },
+      // ② FreeDOS ISO を Internet Archive から直接読み込む
+      cdrom:            { url: "https://archive.org/download/v86_freedos722/freedos722.iso" },
       autostart:        true,
       memory_size:      64 * 1024 * 1024,
       vga_memory_size:  4  * 1024 * 1024,
       serial_container: document.getElementById("serial"),
 
-      // (B) ネットワーク有効化（WebSocket プロキシ）
+      // ③ ネットワーク（WebSocket プロキシ）
       network: {
         type:   "ws",
         server: "wss://relay.widgetry.org/"
       },
 
-      // (C) ファイルシステム共有は mount_fs() で設定
+      // ④ 音声を完全に無効化
+      disable_audio:    true,
+
+      // ⑤ ファイルシステム共有は後述でマウント
       filesystem: {}
     };
 
-    // (D) エミュレータ起動
+    // インスタンス生成
     const emulator = new V86(options);
 
-    // (E) ホストフォルダをマウント
+    // ホストフォルダをマウントする関数
     async function mountHostFS() {
       try {
         const dirHandle = await window.showDirectoryPicker();
         await emulator.mount_fs({
           basefs: {
-            name:   "hostfs",
-            handle: dirHandle,
+            name:    "hostfs",
+            handle:  dirHandle,
             overlay: true
           }
         });
-        alert("ホストフォルダをマウントしました。\nゲストの C:\\\\HOSTFS に見えます");
+        alert("ホストフォルダをマウントしました。\nゲスト内の C:\\\\HOSTFS に表示されます");
       }
       catch(e) {
-        console.log("マウントがキャンセルされました");
+        console.log("フォルダ選択がキャンセルされました");
       }
     }
     document.getElementById("mount_fs_btn")
