@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>v86 + FreeDOS on GitHub Pages</title>
 
-  <!-- v86 ランタイム（CDN 経由） -->
+  <!-- v86 ランタイム（CDN経由） -->
   <script src="https://cdn.jsdelivr.net/npm/v86@latest/build/libv86.js"></script>
 
   <style>
@@ -23,8 +23,13 @@
   </style>
 </head>
 <body>
-  <!-- エミュレータ描画先コンテナ -->
-  <div id="screen_container"></div>
+  <!-- ① v86 が期待する “文字出力用 div” と “canvas” を必ずここに並べる -->
+  <div id="screen_container">
+    <!-- シリアル等テキスト出力用 -->
+    <div style="white-space: pre; font: 14px monospace; line-height: 14px"></div>
+    <!-- v86 の描画用 canvas -->
+    <canvas></canvas>
+  </div>
 
   <!-- ホストファイル共有用ボタン -->
   <button id="mount_fs_btn">ホストフォルダをマウント</button>
@@ -45,13 +50,13 @@
       vga_memory_size:  4  * 1024 * 1024,
       serial_container: document.getElementById("serial"),
 
-      // (B) ネットワーク有効化
+      // (B) ネットワーク有効化（WebSocket プロキシ）
       network: {
         type:   "ws",
         server: "wss://relay.widgetry.org/"
       },
 
-      // (C) ファイルシステム共有は後述の mount_fs() で設定
+      // (C) ファイルシステム共有は mount_fs() で設定
       filesystem: {}
     };
 
@@ -64,15 +69,14 @@
         const dirHandle = await window.showDirectoryPicker();
         await emulator.mount_fs({
           basefs: {
-            name:    "hostfs",
-            handle:  dirHandle,
+            name:   "hostfs",
+            handle: dirHandle,
             overlay: true
           }
         });
         alert("ホストフォルダをマウントしました。\nゲストの C:\\\\HOSTFS に見えます");
       }
       catch(e) {
-        // キャンセル時は何もしない
         console.log("マウントがキャンセルされました");
       }
     }
