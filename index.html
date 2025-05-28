@@ -23,47 +23,48 @@
   </style>
 </head>
 <body>
-  <!-- 必須：テキスト出力用<div> と <canvas> を並べる -->
+  <!-- 必須：テキスト用<div> と <canvas> を並べる -->
   <div id="screen_container">
     <div style="white-space: pre; font: 14px monospace; line-height: 14px"></div>
     <canvas></canvas>
   </div>
 
-  <!-- ホストファイル共有用 -->
+  <!-- ホストファイル共有用ボタン -->
   <button id="mount_fs_btn">ホストフォルダをマウント</button>
+  <!-- シリアル出力 -->
   <pre id="serial"></pre>
 
   <script>
     const options = {
-      // ① wasm の読み込み先
       wasm_path:        "https://cdn.jsdelivr.net/npm/v86@latest/build/v86.wasm",
       screen_container: document.getElementById("screen_container"),
       bios:             { url: "bios/seabios.bin" },
       vga_bios:         { url: "bios/vgabios.bin" },
-      // ② FreeDOS ISO を Internet Archive から直接読み込む
-      cdrom:            { url: "https://archive.org/download/v86_freedos722/freedos722.iso" },
+
+      // ○ FreeDOS の IMG をフロッピーとして読み込む
+      floppy:           { url: "images/freedos722.img" },
+
       autostart:        true,
       memory_size:      64 * 1024 * 1024,
       vga_memory_size:  4  * 1024 * 1024,
       serial_container: document.getElementById("serial"),
 
-      // ③ ネットワーク（WebSocket プロキシ）
+      // ネットワーク（WebSocket プロキシ）
       network: {
         type:   "ws",
         server: "wss://relay.widgetry.org/"
       },
 
-      // ④ 音声を完全に無効化
-      disable_audio:    true,
+      // スピーカーを無効化（AudioContext エラー回避）
+      disable_speaker:  true,
 
-      // ⑤ ファイルシステム共有は後述でマウント
       filesystem: {}
     };
 
-    // インスタンス生成
+    // エミュレータ起動
     const emulator = new V86(options);
 
-    // ホストフォルダをマウントする関数
+    // ホストフォルダをマウント
     async function mountHostFS() {
       try {
         const dirHandle = await window.showDirectoryPicker();
@@ -74,7 +75,7 @@
             overlay: true
           }
         });
-        alert("ホストフォルダをマウントしました。\nゲスト内の C:\\\\HOSTFS に表示されます");
+        alert("ホストフォルダをマウントしました。\nゲストの C:\\\\HOSTFS に表示されます");
       }
       catch(e) {
         console.log("フォルダ選択がキャンセルされました");
